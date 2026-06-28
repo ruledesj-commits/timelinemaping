@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>이작초 1학기 성찰 워크숍 입력 폼</title>
+    <title>이작초등학교 1학기 교육활동 성찰 워크숍 입력 폼</title>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; margin: 0; }
-        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        h2 { text-align: center; color: #0284c7; }
-        .event-card { border-bottom: 1px solid #e2e8f0; padding: 15px 0; }
-        .event-name { font-weight: bold; margin-bottom: 10px; font-size: 1.05rem; }
+        body { font-family: 'Malgun Gothic', sans-serif; background: #f0f9ff; color: #1e293b; padding: 20px; margin: 0; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.04); }
+        h2 { text-align: center; color: #0369a1; margin-top: 0; }
+        .event-card { border-bottom: 1px solid #e2e8f0; padding: 18px 0; }
+        .event-name { font-weight: bold; margin-bottom: 12px; font-size: 1.05rem; color: #334155; }
         .rating { display: flex; justify-content: space-between; }
         .rating label { display: flex; flex-direction: column; align-items: center; font-size: 0.85rem; color: #64748b; cursor: pointer; }
-        .rating input { width: 20px; height: 20px; margin-bottom: 4px; }
-        button { width: 100%; padding: 15px; background: #0284c7; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
+        .rating input { width: 22px; height: 22px; margin-bottom: 5px; }
+        button { width: 100%; padding: 15px; background: #0284c7; color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; margin-top: 25px; cursor: pointer; transition: background 0.2s; }
         button:hover { background: #0369a1; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>📱 이작초 1학기 성찰 인식조사</h2>
-    <p style="text-align: center; color: #64748b; font-size: 0.9rem;">각 교육활동의 성찰 점수(1~5점)를 선택해주세요.</p>
+    <h2>📱 이작초등학교 1학기 교육활동 성찰 인식조사</h2>
+    <p style="text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">각 교육활동의 성찰 점수(1~5점)를 선택해주세요.</p>
     
     <form id="surveyForm">
         <div id="eventsList"></div>
@@ -31,9 +31,9 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, runTransaction, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // 💡 [중요] 2단계에서 확인한 파이어베이스 실제 설정값으로 꼭 채워주세요!
+    // ⚠️ 본인의 Firebase 설정값으로 채워주세요
     const firebaseConfig = {
           apiKey: "AIzaSyD0JJU-fNQHGwpjfFBZWe5se-QV_cBIP-E",
           authDomain: "timelinemaping-5bfea.firebaseapp.com",
@@ -47,7 +47,6 @@
     const app = initializeApp(firebaseConfig);
     const database = getDatabase(app);
 
-    // 대화면과 똑같은 행사 목록 설정
     const eventConfig = [
         { id: 'event1', name: '3.3. 개학식 및 입학식' },
         { id: 'event2', name: '3.26. 교육과정 설명회 및 학부모 공개수업' },
@@ -59,7 +58,6 @@
         { id: 'event8', name: '7.24. 여름방학식' }
     ];
 
-    // 스마트폰 화면에 라디오 버튼 동적 생성
     const listContainer = document.getElementById('eventsList');
     eventConfig.forEach(event => {
         const card = document.createElement('div');
@@ -78,7 +76,6 @@
         listContainer.appendChild(card);
     });
 
-    // 제출 버튼 클릭 시 실시간 평균 계산 알고리즘 트랜잭션 작동
     document.getElementById('submitBtn').addEventListener('click', async () => {
         const form = document.getElementById('surveyForm');
         if (!form.checkValidity()) {
@@ -91,16 +88,22 @@
 
         for (const event of eventConfig) {
             const selectedScore = parseInt(form.elements[event.id].value);
-            const eventRef = ref(database, `events/${event.id}`);
+            
+            // 1. 개별 분포 기록용 고유 리스트 추가
+            const scoresRef = ref(database, `events/${event.id}/scores`);
+            const newScoreRef = push(scoresRef);
+            await set(newScoreRef, selectedScore);
 
-            // 트랜잭션을 활용해 여러 명이 동시에 제출해도 누적 평균이 깨지지 않도록 안전하게 처리
+            // 2. 실시간 평균 계산 트랜잭션
+            const eventRef = ref(database, `events/${event.id}`);
             await runTransaction(eventRef, (currentData) => {
-                if (!currentData) {
-                    return { count: 1, totalScore: selectedScore, averageScore: selectedScore };
+                if (!currentData || !currentData.count) {
+                    return { count: 1, totalScore: selectedScore, averageScore: selectedScore, scores: currentData?.scores || {} };
                 }
-                const newCount = (currentData.count || 0) + 1;
-                const newTotal = (currentData.totalScore || 0) + selectedScore;
+                const newCount = currentData.count + 1;
+                const newTotal = currentData.totalScore + selectedScore;
                 return {
+                    ...currentData,
                     count: newCount,
                     totalScore: newTotal,
                     averageScore: newTotal / newCount
@@ -108,8 +111,8 @@
             });
         }
 
-        alert('성찰 점수가 성공적으로 제출되었습니다. 교실 대화면을 확인해보세요!');
-        location.reload(); // 초기화
+        alert('성찰 점수가 성공적으로 제출되었습니다!');
+        location.reload();
     });
 </script>
 </body>
