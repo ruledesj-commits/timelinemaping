@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1학기 성찰 워크숍 입력 폼</title>
+    <title>이작초 1학기 성찰 워크숍 입력 폼</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; background: #f8fafc; color: #1e293b; padding: 20px; margin: 0; }
         .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
@@ -20,7 +20,7 @@
 <body>
 
 <div class="container">
-    <h2>📱 1학기 성찰 인식조사</h2>
+    <h2>📱 이작초 1학기 성찰 인식조사</h2>
     <p style="text-align: center; color: #64748b; font-size: 0.9rem;">각 교육활동의 성찰 점수(1~5점)를 선택해주세요.</p>
     
     <form id="surveyForm">
@@ -35,10 +35,13 @@
 
     // 💡 [중요] 2단계에서 확인한 파이어베이스 실제 설정값으로 꼭 채워주세요!
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-        projectId: "YOUR_PROJECT_ID"
+          apiKey: "AIzaSyD0JJU-fNQHGwpjfFBZWe5se-QV_cBIP-E",
+          authDomain: "timelinemaping-5bfea.firebaseapp.com",
+          databaseURL: "https://timelinemaping-5bfea-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "timelinemaping-5bfea",
+          storageBucket: "timelinemaping-5bfea.firebasestorage.app",
+          messagingSenderId: "482092342253",
+          appId: "1:482092342253:web:7dcf66a261173a62bba5e4"
     };
 
     const app = initializeApp(firebaseConfig);
