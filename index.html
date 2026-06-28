@@ -2,41 +2,78 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>이작초등학교 1학기 교육활동 타임라인 맵핑</title>
+    <title>🍌 이작초등학교 1학기 교육활동 타임라인 맵핑</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
+        /* 초등학교 교실에 어울리는 따뜻하고 산뜻한 파스텔톤 배경 */
         body { 
-            font-family: 'Malgun Gothic', sans-serif; 
-            background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%); 
-            color: #1e293b; 
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; 
+            background: linear-gradient(135deg, #fef08a 0%, #e0f2fe 50%, #f0fdf4 100%); 
+            color: #334155; 
             margin: 0; 
-            padding: 40px; 
+            padding: 30px 40px; 
             text-align: center;
             min-height: 100vh;
         }
-        h1 { color: #0369a1; font-size: 2.5rem; margin-bottom: 5px; }
-        .subtitle { color: #475569; font-size: 1.1rem; margin-bottom: 25px; }
         
-        .btn-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
-        .btn { padding: 10px 20px; font-size: 1rem; font-weight: bold; border: none; border-radius: 30px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .btn-toggle { background: #0284c7; color: white; }
-        .btn-toggle:hover { background: #0369a1; }
-        .btn-reset { background: #ef4444; color: white; }
-        .btn-reset:hover { background: #dc2626; }
+        /* 타이틀 영역 꾸미기 */
+        .header-container {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 20px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 2px dashed #facc15;
+            box-shadow: 0 8px 20px rgba(250, 204, 21, 0.1);
+        }
+        h1 { color: #0369a1; font-size: 2.6rem; margin: 0 0 8px 0; letter-spacing: -1px; }
+        .subtitle { color: #475569; font-size: 1.15rem; font-weight: bold; }
+        
+        /* 아동형/에듀테크 스타일의 동글동글한 버튼 세팅 */
+        .btn-container { display: flex; justify-content: center; gap: 20px; margin-bottom: 25px; }
+        .btn { 
+            padding: 12px 28px; 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            border: none; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            transition: transform 0.2s, box-shadow 0.2s; 
+            box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+        }
+        .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,0.1); }
+        
+        .btn-toggle { background: #facc15; color: #451a03; border: 2px solid #eab308; }
+        .btn-toggle:hover { background: #fde047; }
+        
+        .btn-reset { background: #f87171; color: white; border: 2px solid #f87171; }
+        .btn-reset:hover { background: #fca5a5; }
 
-        .chart-container { width: 92%; margin: 0 auto; background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        /* 대화면 메인 차트 판넬 */
+        .chart-container { 
+            width: 92%; 
+            margin: 0 auto; 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 35px; 
+            border-radius: 32px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+            border: 3px solid #e2e8f0;
+        }
     </style>
 </head>
 <body>
 
-    <h1>📈 이작초등학교 1학기 교육활동 타임라인 맵핑</h1>
-    <div class="subtitle">1학기 교육활동에 대한 인식(교육 성과, 행사 진행의 어려움 등)</div>
+    <div class="header-container">
+        <h1>🍌 이작초등학교 1학기 교육활동 타임라인 맵핑 ✨</h1>
+        <div class="subtitle">1학기 교육활동에 대한 인식(교육적 성과, 행사 진행의 어려움 등)</div>
+    </div>
 
     <div class="btn-container">
-        <button class="btn btn-toggle" id="toggleViewBtn">📊 개별 분포 보기</button>
-        <button class="btn btn-reset" id="resetBtn">🔄 데이터 초기화</button>
+        <button class="btn btn-toggle" id="toggleViewBtn">✨ 개별 분포(은하수) 보기</button>
+        <button class="btn btn-reset" id="resetBtn">🔄 처음부터 다시하기</button>
     </div>
 
     <div class="chart-container">
@@ -47,7 +84,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // ⚠️ 본인의 Firebase 설정값으로 채워주세요
+        // ⚠️ 본인의 Firebase 설정값으로 유지해주세요
         const firebaseConfig = {
           apiKey: "AIzaSyD0JJU-fNQHGwpjfFBZWe5se-QV_cBIP-E",
           authDomain: "timelinemaping-5bfea.firebaseapp.com",
@@ -55,8 +92,7 @@
           projectId: "timelinemaping-5bfea",
           storageBucket: "timelinemaping-5bfea.firebasestorage.app",
           messagingSenderId: "482092342253",
-          appId: "1:482092342253:web:7dcf66a261173a62bba5e4"
-        };
+          appId: "1:482092342253:web:7dcf66a261173a62bba5e4"        };
 
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
@@ -72,7 +108,7 @@
             { id: 'event8', date: '2026-07-24', name: '여름방학식' }
         ];
 
-        let currentView = 'average'; // 'average' 또는 'distribution'
+        let currentView = 'average'; 
         let rawFirebaseData = {};
 
         const ctx = document.getElementById('timelineChart').getContext('2d');
@@ -85,33 +121,27 @@
                         type: 'time',
                         time: { unit: 'month', displayFormats: { month: 'M월' } },
                         min: '2026-03-01', max: '2026-07-31',
-                        grid: { color: '#e2e8f0' },
-                        ticks: { color: '#334155', font: { size: 14, weight: 'bold' } }
+                        grid: { color: '#f1f5f9', lineWidth: 2 },
+                        ticks: { color: '#0f172a', font: { size: 15, weight: 'bold' } }
                     },
                     y: {
                         min: 0, max: 5,
-                        grid: { color: '#e2e8f0' },
-                        ticks: { color: '#64748b', font: { size: 14 } }
+                        grid: { color: '#f1f5f9', lineWidth: 2 },
+                        ticks: { color: '#475569', font: { size: 14, weight: 'bold' } }
                     }
                 },
                 plugins: {
-                    legend: { position: 'top', labels: { font: { size: 13, weight: 'bold' } } },
+                    legend: { position: 'top', labels: { font: { size: 14, weight: 'bold' }, boxWidth: 15 } },
                     tooltip: {
+                        padding: 14,
+                        cornerRadius: 16,
                         callbacks: {
                             title: (context) => {
                                 const datasetIndex = context[0].datasetIndex;
-                                if (currentView === 'average') {
-                                    return eventConfig[context[0].dataIndex].name;
-                                } else {
-                                    return timelineChart.data.datasets[datasetIndex].label;
-                                }
+                                return currentView === 'average' ? eventConfig[context[0].dataIndex].name : timelineChart.data.datasets[datasetIndex].label;
                             },
                             label: (context) => {
-                                if (currentView === 'average') {
-                                    return ` 평균 점수: ${context.parsed.y.toFixed(1)}점`;
-                                } else {
-                                    return ` 선택 점수: ${context.parsed.y}점`;
-                                }
+                                return currentView === 'average' ? ` 평균 점수: ⭐ ${context.parsed.y.toFixed(1)}점` : ` 선택 점수: 📍 ${context.parsed.y.toFixed(0)}점`;
                             }
                         }
                     }
@@ -119,7 +149,6 @@
             }
         });
 
-        // 차트 뷰 업데이트 함수
         function updateChartTemplate() {
             if (currentView === 'average') {
                 const avgData = eventConfig.map(event => {
@@ -129,34 +158,38 @@
 
                 timelineChart.data.datasets = [{
                     type: 'line',
-                    label: '행사별 인식 점수 (평균)',
+                    label: '🌿 우리 학교 1학기 성장 곡선 (평균)',
                     data: avgData,
                     borderColor: '#0284c7',
-                    backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                    borderWidth: 4,
-                    pointBackgroundColor: '#ef4444',
-                    pointRadius: 8,
-                    tension: 0.1
+                    backgroundColor: 'rgba(2, 132, 199, 0.05)',
+                    borderWidth: 5,
+                    pointBackgroundColor: '#facc15',
+                    pointBorderColor: '#0284c7',
+                    pointBorderWidth: 3,
+                    pointRadius: 9,
+                    tension: 0.25
                 }];
             } else {
-                // 개별 분포 보기 (Scatter 형태)
                 const datasets = [];
-                eventConfig.forEach(event => {
+                // 부드러운 개별 점 분포를 위한 파스텔톤 테마 색상 배열들
+                const colors = ['#38bdf8', '#4ade80', '#fb923c', '#f472b6', '#a78bfa', '#fb7185', '#2dd4bf', '#fbbf24'];
+                
+                eventConfig.forEach((event, idx) => {
                     const eventData = rawFirebaseData[event.id] || {};
                     const allScores = eventData.scores ? Object.values(eventData.scores) : [];
                     
                     const distData = allScores.map(score => ({
                         x: event.date,
-                        y: score + (Math.random() * 0.2 - 0.1) // 💡 점 구분을 위해 위아래로 살짝 랜덤 분산(Jittering) 효과 적용
+                        y: score + (Math.random() * 0.25 - 0.125) // 은하수 느낌으로 부드럽게 분산
                     }));
 
                     datasets.push({
                         type: 'scatter',
                         label: event.name.split('.')[1]?.trim() || event.name,
                         data: distData,
-                        pointRadius: 6,
-                        pointHoverRadius: 9,
-                        alpha: 0.6
+                        backgroundColor: colors[idx % colors.length],
+                        pointRadius: 7,
+                        pointHoverRadius: 10,
                     });
                 });
                 timelineChart.data.datasets = datasets;
@@ -164,30 +197,28 @@
             timelineChart.update();
         }
 
-        // DB 전체 실시간 감시
         const eventsRef = ref(database, 'events');
         onValue(eventsRef, (snapshot) => {
             rawFirebaseData = snapshot.val() || {};
             updateChartTemplate();
         });
 
-        // 1. 평균 ↔ 분포 전환 토글 버튼 이벤트
         document.getElementById('toggleViewBtn').addEventListener('click', () => {
             if (currentView === 'average') {
                 currentView = 'distribution';
-                document.getElementById('toggleViewBtn').innerText = '📈 평균 추이 보기';
+                document.getElementById('toggleViewBtn').innerText = '📈 평균 곡선 보기';
             } else {
                 currentView = 'average';
-                document.getElementById('toggleViewBtn').innerText = '📊 개별 분포 보기';
+                document.getElementById('toggleViewBtn').innerText = '✨ 개별 분포(은하수) 보기';
             }
             updateChartTemplate();
         });
 
-        // 2. 초기화 버튼 이벤트
         document.getElementById('resetBtn').addEventListener('click', () => {
-            if (confirm("🚨정말로 기존 투표 데이터를 모두 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
+            if (confirm("🚨 정말로 모든 선생님들의 투표 데이터를 초기화하시겠습니까?")) {
                 set(ref(database, 'events'), {}).then(() => {
-                    alert("데이터가 깨끗하게 비워졌습니다!");
+                    alert("성공적으로 초기화되었습니다! 새로고침합니다.");
+                    location.reload();
                 });
             }
         });
