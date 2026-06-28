@@ -2,18 +2,20 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>1학기 타임라인 맵핑 대시보드</title>
+    <title>이작초등학교 1학기 활동 타임라인 맵핑</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 40px; text-align: center; }
         h1 { color: #38bdf8; font-size: 2.5rem; margin-bottom: 10px; }
-        .chart-container { width: 85%; margin: 50px auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .chart-container { width: 92%; margin: 40px auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
 
-    <h1>📈 1학기 교육활동 실시간 타임라인 맵핑</h1>
-    <p style="color: #94a3b8;">우리 학교의 1학기 발자취를 따라 각 행사의 인식 변화를 실시간으로 확인합니다.</p>
+    <h1>📈 이작초등학교 1학기 활동 타임라인 맵핑</h1>
+    <p style="color: #94a3b8;">날짜 간격을 반영하여 우리 학교 1학기 활동의 흐름을 실시간으로 확인합니다.</p>
 
     <div class="chart-container">
         <canvas id="timelineChart"></canvas>
@@ -34,54 +36,86 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        // 1. Chart.js 초기화 (시간 순서대로 세팅)
+        // 📅 학교 교육과정 데이터 설정 (날짜 간격 자동 매핑)
+        const eventConfig = [
+            { id: 'event1', date: '2026-03-03', name: '개학식 및 입학식' },
+            { id: 'event2', date: '2026-03-26', name: '교육과정 설명회 및 학부모 공개수업' },
+            { id: 'event3', date: '2026-04-15', name: '과학 체험의 날' },
+            { id: 'event4', date: '2026-04-30', name: '꿈키움 어울림 마당(운동회)' },
+            { id: 'event5', date: '2026-05-13', name: '봄 현장체험학습' },
+            { id: 'event6', date: '2026-06-17', name: '꿈펼침 체험학습(키자니아, 미래교육원)' },
+            { id: 'event7', date: '2026-07-03', name: '하계 스포츠 체험학습' },
+            { id: 'event8', date: '2026-07-24', name: '여름방학식' }
+        ];
+
+        // 초기 데이터 세팅 (x축: 날짜, y축: 초기값 0)
+        const initialData = eventConfig.map(event => ({ x: event.date, y: 0 }));
+
         const ctx = document.getElementById('timelineChart').getContext('2d');
         const timelineChart = new Chart(ctx, {
-            type: 'line', // 타임라인 연결을 위한 선형 차트
+            type: 'line',
             data: {
-                labels: ['3월: 교육과정 워크숍', '4월: AI·디지털 공개수업', '5월: 현장체험학습', '6월: 정보통신 윤리주간', '7월: 1학기 마무리'],
                 datasets: [{
-                    label: '행사별 인식 점수 (평균)',
-                    data: [0, 0, 0, 0, 0], // 초기값
+                    label: '인식 점수 (평균)',
+                    data: initialData,
                     borderColor: '#38bdf8',
-                    backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
                     borderWidth: 4,
                     pointBackgroundColor: '#f43f5e',
                     pointRadius: 8,
                     pointHoverRadius: 12,
-                    tension: 0.3 // 곡선 부드러움 정도
+                    tension: 0.2
                 }]
             },
             options: {
                 responsive: true,
                 scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'month', // 월 간격을 일정하게 고정
+                            displayFormats: {
+                                month: 'M월'
+                            }
+                        },
+                        min: '2026-03-01', // 3월 초부터 시작
+                        max: '2026-07-31', // 7월 말까지 표시
+                        grid: { color: '#334155' },
+                        ticks: { color: '#cbd5e1', font: { size: 14, weight: 'bold' } }
+                    },
                     y: {
                         min: 0,
-                        max: 5, // 5점 만점 기준
+                        max: 5, // 5점 만점 척도 기준
                         grid: { color: '#334155' },
                         ticks: { color: '#94a3b8', font: { size: 14 } }
-                    },
-                    x: {
-                        grid: { color: '#334155' },
-                        ticks: { color: '#cbd5e1', font: { size: 16, weight: 'bold' } }
                     }
                 },
                 plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: (context) => {
+                                const index = context[0].dataIndex;
+                                return eventConfig[index].name;
+                            },
+                            label: (context) => {
+                                return ` 점수: ${context.parsed.y.toFixed(1)}점 (${eventConfig[context.dataIndex].date})`;
+                            }
+                        }
+                    },
                     legend: { display: false }
                 }
             }
         });
 
-        // 2. Firebase 실시간 데이터 감시 및 차트 업데이트
-        const events = ['event1', 'event2', 'event3', 'event4', 'event5'];
-        events.forEach((eventId, index) => {
-            const scoreRef = ref(database, `events/${eventId}/averageScore`);
+        // Firebase 실시간 데이터 바인딩 (총 8개 행사 감시)
+        eventConfig.forEach((event, index) => {
+            const scoreRef = ref(database, `events/${event.id}/averageScore`);
             onValue(scoreRef, (snapshot) => {
                 const score = snapshot.val() || 0;
                 
-                // 해당 인덱스의 차트 데이터 실시간 변경
-                timelineChart.data.datasets[0].data[index] = score;
-                timelineChart.update(); // 차트 리프레시 (애니메이션 효과 적용됨)
+                // 실시간 데이터 동적 매핑
+                timelineChart.data.datasets[0].data[index].y = score;
+                timelineChart.update();
             });
         });
     </script>
