@@ -2,20 +2,42 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>이작초등학교 1학기 활동 타임라인 맵핑</title>
+    <title>이작초등학교 1학기 교육활동 타임라인 맵핑</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@3.6.0/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
-        body { font-family: 'Malgun Gothic', sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 40px; text-align: center; }
-        h1 { color: #38bdf8; font-size: 2.5rem; margin-bottom: 10px; }
-        .chart-container { width: 92%; margin: 40px auto; background: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        body { 
+            font-family: 'Malgun Gothic', sans-serif; 
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%); 
+            color: #1e293b; 
+            margin: 0; 
+            padding: 40px; 
+            text-align: center;
+            min-height: 100vh;
+        }
+        h1 { color: #0369a1; font-size: 2.5rem; margin-bottom: 5px; }
+        .subtitle { color: #475569; font-size: 1.1rem; margin-bottom: 25px; }
+        
+        .btn-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .btn { padding: 10px 20px; font-size: 1rem; font-weight: bold; border: none; border-radius: 30px; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .btn-toggle { background: #0284c7; color: white; }
+        .btn-toggle:hover { background: #0369a1; }
+        .btn-reset { background: #ef4444; color: white; }
+        .btn-reset:hover { background: #dc2626; }
+
+        .chart-container { width: 92%; margin: 0 auto; background: white; padding: 30px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
     </style>
 </head>
 <body>
 
-    <h1>📈 이작초등학교 1학기 활동 타임라인 맵핑</h1>
-    <p style="color: #94a3b8;">날짜 간격을 반영하여 우리 학교 1학기 활동의 흐름을 실시간으로 확인합니다.</p>
+    <h1>📈 이작초등학교 1학기 교육활동 타임라인 맵핑</h1>
+    <div class="subtitle">1학기 교육활동에 대한 인식(교육 성과, 행사 진행의 어려움 등.</div>
+
+    <div class="btn-container">
+        <button class="btn btn-toggle" id="toggleViewBtn">📊 개별 분포 보기</button>
+        <button class="btn btn-reset" id="resetBtn">🔄 데이터 초기화</button>
+    </div>
 
     <div class="chart-container">
         <canvas id="timelineChart"></canvas>
@@ -23,9 +45,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // Firebase 설정 (본인 프로젝트 정보 입력)
+        // ⚠️ 본인의 Firebase 설정값으로 채워주세요
         const firebaseConfig = {
           apiKey: "AIzaSyD0JJU-fNQHGwpjfFBZWe5se-QV_cBIP-E",
           authDomain: "timelinemaping-5bfea.firebaseapp.com",
@@ -39,7 +61,6 @@
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
 
-        // 📅 학교 교육과정 데이터 설정 (날짜 간격 자동 매핑)
         const eventConfig = [
             { id: 'event1', date: '2026-03-03', name: '개학식 및 입학식' },
             { id: 'event2', date: '2026-03-26', name: '교육과정 설명회 및 학부모 공개수업' },
@@ -51,75 +72,124 @@
             { id: 'event8', date: '2026-07-24', name: '여름방학식' }
         ];
 
-        // 초기 데이터 세팅 (x축: 날짜, y축: 초기값 0)
-        const initialData = eventConfig.map(event => ({ x: event.date, y: 0 }));
+        let currentView = 'average'; // 'average' 또는 'distribution'
+        let rawFirebaseData = {};
 
         const ctx = document.getElementById('timelineChart').getContext('2d');
         const timelineChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: '인식 점수 (평균)',
-                    data: initialData,
-                    borderColor: '#38bdf8',
-                    backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                    borderWidth: 4,
-                    pointBackgroundColor: '#f43f5e',
-                    pointRadius: 8,
-                    pointHoverRadius: 12,
-                    tension: 0.2
-                }]
-            },
+            data: { datasets: [] },
             options: {
                 responsive: true,
                 scales: {
                     x: {
                         type: 'time',
-                        time: {
-                            unit: 'month', // 월 간격을 일정하게 고정
-                            displayFormats: {
-                                month: 'M월'
-                            }
-                        },
-                        min: '2026-03-01', // 3월 초부터 시작
-                        max: '2026-07-31', // 7월 말까지 표시
-                        grid: { color: '#334155' },
-                        ticks: { color: '#cbd5e1', font: { size: 14, weight: 'bold' } }
+                        time: { unit: 'month', displayFormats: { month: 'M월' } },
+                        min: '2026-03-01', max: '2026-07-31',
+                        grid: { color: '#e2e8f0' },
+                        ticks: { color: '#334155', font: { size: 14, weight: 'bold' } }
                     },
                     y: {
-                        min: 0,
-                        max: 5, // 5점 만점 척도 기준
-                        grid: { color: '#334155' },
-                        ticks: { color: '#94a3b8', font: { size: 14 } }
+                        min: 0, max: 5,
+                        grid: { color: '#e2e8f0' },
+                        ticks: { color: '#64748b', font: { size: 14 } }
                     }
                 },
                 plugins: {
+                    legend: { position: 'top', labels: { font: { size: 13, weight: 'bold' } } },
                     tooltip: {
                         callbacks: {
                             title: (context) => {
-                                const index = context[0].dataIndex;
-                                return eventConfig[index].name;
+                                const datasetIndex = context[0].datasetIndex;
+                                if (currentView === 'average') {
+                                    return eventConfig[context[0].dataIndex].name;
+                                } else {
+                                    return timelineChart.data.datasets[datasetIndex].label;
+                                }
                             },
                             label: (context) => {
-                                return ` 점수: ${context.parsed.y.toFixed(1)}점 (${eventConfig[context.dataIndex].date})`;
+                                if (currentView === 'average') {
+                                    return ` 평균 점수: ${context.parsed.y.toFixed(1)}점`;
+                                } else {
+                                    return ` 선택 점수: ${context.parsed.y}점`;
+                                }
                             }
                         }
-                    },
-                    legend: { display: false }
+                    }
                 }
             }
         });
 
-        // Firebase 실시간 데이터 바인딩 (총 8개 행사 감시)
-        eventConfig.forEach((event, index) => {
-            const scoreRef = ref(database, `events/${event.id}/averageScore`);
-            onValue(scoreRef, (snapshot) => {
-                const score = snapshot.val() || 0;
-                
-                // 실시간 데이터 동적 매핑
-                timelineChart.data.datasets[0].data[index].y = score;
-                timelineChart.update();
-            });
+        // 차트 뷰 업데이트 함수
+        function updateChartTemplate() {
+            if (currentView === 'average') {
+                const avgData = eventConfig.map(event => {
+                    const data = rawFirebaseData[event.id] || {};
+                    return { x: event.date, y: data.averageScore || 0 };
+                });
+
+                timelineChart.data.datasets = [{
+                    type: 'line',
+                    label: '행사별 인식 점수 (평균)',
+                    data: avgData,
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                    borderWidth: 4,
+                    pointBackgroundColor: '#ef4444',
+                    pointRadius: 8,
+                    tension: 0.1
+                }];
+            } else {
+                // 개별 분포 보기 (Scatter 형태)
+                const datasets = [];
+                eventConfig.forEach(event => {
+                    const eventData = rawFirebaseData[event.id] || {};
+                    const allScores = eventData.scores ? Object.values(eventData.scores) : [];
+                    
+                    const distData = allScores.map(score => ({
+                        x: event.date,
+                        y: score + (Math.random() * 0.2 - 0.1) // 💡 점 구분을 위해 위아래로 살짝 랜덤 분산(Jittering) 효과 적용
+                    }));
+
+                    datasets.push({
+                        type: 'scatter',
+                        label: event.name.split('.')[1]?.trim() || event.name,
+                        data: distData,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                        alpha: 0.6
+                    });
+                });
+                timelineChart.data.datasets = datasets;
+            }
+            timelineChart.update();
+        }
+
+        // DB 전체 실시간 감시
+        const eventsRef = ref(database, 'events');
+        onValue(eventsRef, (snapshot) => {
+            rawFirebaseData = snapshot.val() || {};
+            updateChartTemplate();
+        });
+
+        // 1. 평균 ↔ 분포 전환 토글 버튼 이벤트
+        document.getElementById('toggleViewBtn').addEventListener('click', () => {
+            if (currentView === 'average') {
+                currentView = 'distribution';
+                document.getElementById('toggleViewBtn').innerText = '📈 평균 추이 보기';
+            } else {
+                currentView = 'average';
+                document.getElementById('toggleViewBtn').innerText = '📊 개별 분포 보기';
+            }
+            updateChartTemplate();
+        });
+
+        // 2. 초기화 버튼 이벤트
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (confirm("🚨정말로 기존 투표 데이터를 모두 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다.")) {
+                set(ref(database, 'events'), {}).then(() => {
+                    alert("데이터가 깨끗하게 비워졌습니다!");
+                });
+            }
         });
     </script>
 </body>
