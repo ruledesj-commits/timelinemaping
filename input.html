@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>이작초등학교 1학기 교육활동 성찰 워크숍 입력 폼</title>
+    <title>이작초등학교 1학기 교육활동 성찰 인식조사</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; background: #f0f9ff; color: #1e293b; padding: 20px; margin: 0; }
         .container { max-width: 500px; margin: 0 auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.04); }
@@ -20,7 +20,7 @@
 <body>
 
 <div class="container">
-    <h2>📱 이작초등학교 1학기 교육활동 성찰 인식조사</h2>
+    <h2>📱 이작초 1학기 교육활동 성찰 인식조사</h2>
     <p style="text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">각 교육활동의 성찰 점수(1~5점)를 선택해주세요.</p>
     
     <form id="surveyForm">
@@ -31,17 +31,14 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, runTransaction, push } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, set, push, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // ⚠️ 본인의 Firebase 설정값으로 채워주세요
+    // 💡 선생님의 실제 파이어베이스 정보로 정확하게 입력해주세요!
     const firebaseConfig = {
-          apiKey: "AIzaSyD0JJU-fNQHGwpjfFBZWe5se-QV_cBIP-E",
-          authDomain: "timelinemaping-5bfea.firebaseapp.com",
-          databaseURL: "https://timelinemaping-5bfea-default-rtdb.asia-southeast1.firebasedatabase.app",
-          projectId: "timelinemaping-5bfea",
-          storageBucket: "timelinemaping-5bfea.firebasestorage.app",
-          messagingSenderId: "482092342253",
-          appId: "1:482092342253:web:7dcf66a261173a62bba5e4"
+        apiKey: "YOUR_API_KEY",
+        authDomain: "timelinemaping-5bfea.firebaseapp.com",
+        databaseURL: "https://timelinemaping-5bfea-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "timelinemaping-5bfea"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -83,36 +80,49 @@
             return;
         }
 
-        document.getElementById('submitBtn').disabled = true;
-        document.getElementById('submitBtn').innerText = "제출 중...";
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerText = "제출 중...";
 
-        for (const event of eventConfig) {
-            const selectedScore = parseInt(form.elements[event.id].value);
-            
-            // 1. 개별 분포 기록용 고유 리스트 추가
-            const scoresRef = ref(database, `events/${event.id}/scores`);
-            const newScoreRef = push(scoresRef);
-            await set(newScoreRef, selectedScore);
+        try {
+            for (const event of eventConfig) {
+                const selectedScore = parseInt(form.elements[event.id].value);
+                
+                // 1. 개별 점수 비동기 등록
+                const scoresRef = ref(database, `events/${event.id}/scores`);
+                const newScoreRef = push(scoresRef);
+                await set(newScoreRef, selectedScore);
 
-            // 2. 실시간 평균 계산 트랜잭션
-            const eventRef = ref(database, `events/${event.id}`);
-            await runTransaction(eventRef, (currentData) => {
-                if (!currentData || !currentData.count) {
-                    return { count: 1, totalScore: selectedScore, averageScore: selectedScore, scores: currentData?.scores || {} };
-                }
-                const newCount = currentData.count + 1;
-                const newTotal = currentData.totalScore + selectedScore;
-                return {
-                    ...currentData,
-                    count: newCount,
-                    totalScore: newTotal,
-                    averageScore: newTotal / newCount
-                };
-            });
+                // 2. 트랜잭션 방식 안정화 처리
+                const eventRef = ref(database, `events/${event.id}`);
+                await runTransaction(eventRef, (currentData) => {
+                    if (!currentData) {
+                        return { count: 1, totalScore: selectedScore, averageScore: selectedScore };
+                    }
+                    // 개별 데이터 유실 방지를 위해 기존 scores 구조 유지 보장
+                    const existingScores = currentData.scores || {};
+                    const newCount = (currentData.count || 0) + 1;
+                    const newTotal = (currentData.totalScore || 0) + selectedScore;
+                    
+                    return {
+                        ...currentData,
+                        count: newCount,
+                        totalScore: newTotal,
+                        averageScore: newTotal / newCount,
+                        scores: existingScores
+                    };
+                });
+            }
+
+            alert('🎉 성찰 점수가 성공적으로 제출되었습니다!');
+            location.reload();
+
+        } catch (error) {
+            console.error(error);
+            alert('제출 중 오류가 발생했습니다. 파이어베이스 설정을 다시 확인해주세요.');
+            btn.disabled = false;
+            btn.innerText = "성찰 결과 제출하기";
         }
-
-        alert('성찰 점수가 성공적으로 제출되었습니다!');
-        location.reload();
     });
 </script>
 </body>
